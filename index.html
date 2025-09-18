@@ -6,7 +6,6 @@
 <title>YESS - BUS Attendance</title>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <style>
-  /* Dark theme */
   body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -64,7 +63,7 @@
   #reader {
     width: 90vw;
     max-width: 400px;
-    height: 400px; /* fixed size */
+    height: 400px;
     background-color: #1e1e1e;
     border-radius: 12px;
     margin: 15px 0;
@@ -81,26 +80,19 @@
     min-height: 24px;
   }
 
-  /* Toast styling */
-  .toast {
+  /* Fixed success bar */
+  #successBar {
     position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #333;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #00c853;
     color: #fff;
-    padding: 14px 24px;
-    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
     font-size: 16px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-    z-index: 1000;
-  }
-
-  .toast.show {
-    opacity: 1;
-    pointer-events: auto;
+    font-weight: bold;
+    display: none; /* hidden until a scan happens */
   }
 </style>
 </head>
@@ -127,23 +119,23 @@
   <button id="startScan">Start Scan</button>
   <button id="stopScan">Stop Scan</button>
 </div>
-<div style="height: 20vw;"></div>
+
 <div id="reader">Scanner Placeholder</div>
 <p id="result"></p>
 
-<div id="toast" class="toast"></div>
+<!-- Success message bar -->
+<div id="successBar"></div>
 
 <script>
   const webAppURL = "https://script.google.com/macros/s/AKfycbwGU1r3aQdUQJMAOhEeF3LlZLk4aeQ3FyIx753JVo6IZA62gJys83eXpd0cj2dkWjna/exec";
-  const toast = document.getElementById("toast");
-
-  function showToast(message) {
-    toast.textContent = message;
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 3000);
-  }
 
   let scanner = null;
+
+  function showSuccessBar(message) {
+    const bar = document.getElementById("successBar");
+    bar.innerText = message;
+    bar.style.display = "block";
+  }
 
   function sendToSheet(data){
     const bus = document.getElementById("busSelect").value;
@@ -162,21 +154,21 @@
     }).then(res => res.text())
     .then(txt => {
       document.getElementById("result").innerText = txt;
-      showToast("✅ " + txt);
+      showSuccessBar(`${data.id} - ${data.name} in Bus ${bus} (Boarding ${boarding})`);
     })
     .catch(err => {
       document.getElementById("result").innerText = "Error: "+err;
-      showToast("❌ Error: "+err);
+      showSuccessBar("❌ Error: " + err);
     });
   }
 
-  function onScanSuccess(decodedText, decodedResult){
+  function onScanSuccess(decodedText){
     try{
       const data = JSON.parse(decodedText);
       sendToSheet(data);
     }catch(e){
       document.getElementById("result").innerText = "Invalid QR Code";
-      showToast("⚠️ Invalid QR Code");
+      showSuccessBar("⚠️ Invalid QR Code");
     }
   }
 
@@ -189,15 +181,15 @@
       { facingMode: "environment" },
       { fps: 10, qrbox: 250 },
       onScanSuccess
-    ).catch(err => showToast("❌ Camera start failed: " + err));
+    ).catch(err => showSuccessBar("❌ Camera start failed: " + err));
   });
 
   // Stop Scan
   document.getElementById("stopScan").addEventListener("click", () => {
     if(scanner){
       scanner.stop().then(() => {
-        showToast("Scanner stopped");
-      }).catch(err => showToast("Error stopping scanner: " + err));
+        showSuccessBar("Scanner stopped");
+      }).catch(err => showSuccessBar("Error stopping scanner: " + err));
     }
   });
 </script>
