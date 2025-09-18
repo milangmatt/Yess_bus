@@ -1,128 +1,206 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Bus Attendance Scanner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f0f4f7;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YESS - BUS Attendance</title>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+  /* Dark theme */
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #121212;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+  }
 
-    h2 {
-      margin-top: 20px;
-      color: #333;
-      text-align: center;
-    }
+  h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #ff9800;
+    text-align: center;
+  }
 
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin: 15px 0;
-    }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    width: 100%;
+    max-width: 400px;
+  }
 
-    select {
-      font-size: 18px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      min-width: 120px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
+  select, button {
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    cursor: pointer;
+  }
 
-    #reader {
-      width: 90vw;
-      max-width: 400px;
-      margin: 10px auto;
-      border: 2px solid #ddd;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-      background: #fff;
-      padding: 5px;
-    }
+  select {
+    background-color: #1e1e1e;
+    color: #fff;
+    flex: 1;
+  }
 
-    #result {
-      margin-top: 15px;
-      font-size: 18px;
-      font-weight: bold;
-      color: #2b7a0b;
-      text-align: center;
-      min-height: 24px;
-    }
+  button {
+    background-color: #ff9800;
+    color: #121212;
+    flex: 1;
+    transition: background 0.3s;
+  }
 
-    @media (max-width: 400px) {
-      select {
-        font-size: 16px;
-        min-width: 100px;
-      }
-    }
-  </style>
+  button:hover {
+    background-color: #ffa733;
+  }
+
+  #reader {
+    width: 90vw;
+    max-width: 400px;
+    height: 400px; /* fixed size */
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+
+  #result {
+    margin-top: 10px;
+    font-size: 16px;
+    text-align: center;
+    min-height: 24px;
+  }
+
+  /* Toast styling */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+  }
+
+  .toast.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+</style>
 </head>
 <body>
-  <h2>Bus Attendance Check-in</h2>
 
-  <div class="controls">
-    <select id="busSelect">
-      <option value="1">Bus 1</option>
-      <option value="2">Bus 2</option>
-      <option value="3">Bus 3</option>
-      <option value="4">Bus 4</option>
-    </select>
+<h2>YESS - BUS Attendance</h2>
 
-    <select id="boardingSelect">
-      <option value="1">Boarding 1</option>
-      <option value="2">Boarding 2</option>
-      <option value="3">Boarding 3</option>
-    </select>
-  </div>
+<div class="controls">
+  <select id="busSelect">
+    <option value="1">Bus 1</option>
+    <option value="2">Bus 2</option>
+    <option value="3">Bus 3</option>
+    <option value="4">Bus 4</option>
+  </select>
 
-  <div id="reader"></div>
-  <p id="result"></p>
+  <select id="boardingSelect">
+    <option value="1">Boarding 1</option>
+    <option value="2">Boarding 2</option>
+    <option value="3">Boarding 3</option>
+  </select>
+</div>
 
-  <script>
-    const webAppURL = "https://script.google.com/macros/s/AKfycbwGU1r3aQdUQJMAOhEeF3LlZLk4aeQ3FyIx753JVo6IZA62gJys83eXpd0cj2dkWjna/exec";
+<div class="controls">
+  <button id="startScan">Start Scan</button>
+  <button id="stopScan">Stop Scan</button>
+</div>
 
-    function sendToSheet(data){
-      const bus = document.getElementById("busSelect").value;
-      const boarding = document.getElementById("boardingSelect").value;
+<div id="reader">Scanner Placeholder</div>
+<p id="result"></p>
 
-      const payload = {
-        id: data.id,
-        name: data.name,
-        bus: bus,
-        boarding: boarding
-      };
+<div id="toast" class="toast"></div>
 
-      fetch(webAppURL, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      }).then(res => res.text())
-      .then(txt => document.getElementById("result").innerText = txt)
-      .catch(err => document.getElementById("result").innerText = "Error: "+err);
+<script>
+  const webAppURL = "https://script.google.com/macros/s/AKfycbwGU1r3aQdUQJMAOhEeF3LlZLk4aeQ3FyIx753JVo6IZA62gJys83eXpd0cj2dkWjna/exec";
+  const toast = document.getElementById("toast");
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 3000);
+  }
+
+  let scanner = null;
+
+  function sendToSheet(data){
+    const bus = document.getElementById("busSelect").value;
+    const boarding = document.getElementById("boardingSelect").value;
+
+    const payload = {
+      id: data.id,
+      name: data.name,
+      bus: bus,
+      boarding: boarding
+    };
+
+    fetch(webAppURL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }).then(res => res.text())
+    .then(txt => {
+      document.getElementById("result").innerText = txt;
+      showToast("✅ " + txt);
+    })
+    .catch(err => {
+      document.getElementById("result").innerText = "Error: "+err;
+      showToast("❌ Error: "+err);
+    });
+  }
+
+  function onScanSuccess(decodedText, decodedResult){
+    try{
+      const data = JSON.parse(decodedText);
+      sendToSheet(data);
+    }catch(e){
+      document.getElementById("result").innerText = "Invalid QR Code";
+      showToast("⚠️ Invalid QR Code");
     }
+  }
 
-    function onScanSuccess(decodedText, decodedResult){
-      try{
-        const data = JSON.parse(decodedText);
-        sendToSheet(data);
-      }catch(e){
-        document.getElementById("result").innerText = "Invalid QR Code";
-      }
+  // Start Scan
+  document.getElementById("startScan").addEventListener("click", () => {
+    if(!scanner){
+      scanner = new Html5Qrcode("reader");
     }
+    scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      onScanSuccess
+    ).catch(err => showToast("❌ Camera start failed: " + err));
+  });
 
-    var html5QrcodeScanner = new Html5QrcodeScanner(
-      "reader", { fps: 10, qrbox: 250 });
-    html5QrcodeScanner.render(onScanSuccess);
-  </script>
+  // Stop Scan
+  document.getElementById("stopScan").addEventListener("click", () => {
+    if(scanner){
+      scanner.stop().then(() => {
+        showToast("Scanner stopped");
+      }).catch(err => showToast("Error stopping scanner: " + err));
+    }
+  });
+</script>
+
 </body>
 </html>
