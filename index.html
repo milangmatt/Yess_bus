@@ -6,6 +6,7 @@
 <title>YESS - BUS Attendance</title>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <style>
+  /* Dark theme */
   body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -14,11 +15,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px;
+    padding: 15px;
   }
 
   h2 {
-    font-size: 26px;
+    font-size: 24px;
     margin-bottom: 20px;
     color: #ff2600;
     text-align: center;
@@ -60,49 +61,48 @@
     background-color: #ff4b33;
   }
 
-  #scanner-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 15px;
-  }
-
+  /* Success/Result box */
   #resultBox {
     width: 90vw;
     max-width: 400px;
-    padding: 12px 20px;
-    border-radius: 10px;
+    min-height: 40px;
+    margin-bottom: 15px;
+    border-radius: 8px;
     text-align: center;
-    margin-bottom: 12px;
-    display: none; /* hidden by default */
     font-size: 16px;
-    font-weight: bold;
+    padding: 10px;
+    display: none;
   }
 
   #resultBox.success {
-    background-color: #2b7a0b;
-    color: #fff;
-    border: 2px solid #1f5c08;
+    background-color: #1b5e20;
+    color: #a5d6a7;
+    display: block;
   }
 
   #resultBox.error {
-    background-color: #b00020;
-    color: #fff;
-    border: 2px solid #7a0015;
+    background-color: #b71c1c;
+    color: #ef9a9a;
+    display: block;
+  }
+
+  #resultBox.warning {
+    background-color: #f57f17;
+    color: #fff3e0;
+    display: block;
   }
 
   #reader {
     width: 90vw;
     max-width: 400px;
-    height: 400px;
+    height: 400px; /* fixed size */
     background-color: #1e1e1e;
     border-radius: 12px;
+    margin: 15px 0;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    font-size: 18px;
-    color: #aaa;
   }
 </style>
 </head>
@@ -130,21 +130,20 @@
   <button id="stopScan">Stop Scan</button>
 </div>
 
-<div id="scanner-container">
-  <div id="resultBox"></div>
-  <div id="reader">Scanner Here</div>
-</div>
+<!-- Success/Error message box -->
+<div id="resultBox"></div>
+
+<div id="reader">Scanner Here</div>
 
 <script>
   const webAppURL = "https://script.google.com/macros/s/AKfycbwGU1r3aQdUQJMAOhEeF3LlZLk4aeQ3FyIx753JVo6IZA62gJys83eXpd0cj2dkWjna/exec";
   const resultBox = document.getElementById("resultBox");
-
   let scanner = null;
 
-  function showResult(message, type="success") {
+  function showMessage(message, type="success") {
     resultBox.textContent = message;
-    resultBox.className = type === "success" ? "success" : "error";
-    resultBox.style.display = "block";
+    resultBox.className = "";
+    resultBox.classList.add(type);
   }
 
   function sendToSheet(data){
@@ -162,8 +161,12 @@
       method: "POST",
       body: JSON.stringify(payload)
     }).then(res => res.text())
-    .then(txt => showResult("✅ " + txt, "success"))
-    .catch(err => showResult("❌ Error: "+err, "error"));
+    .then(txt => {
+      showMessage("✅ " + txt, "success");
+    })
+    .catch(err => {
+      showMessage("❌ Error: "+err, "error");
+    });
   }
 
   function onScanSuccess(decodedText, decodedResult){
@@ -171,7 +174,7 @@
       const data = JSON.parse(decodedText);
       sendToSheet(data);
     }catch(e){
-      showResult("⚠️ Invalid QR Code", "error");
+      showMessage("⚠️ Invalid QR Code", "warning");
     }
   }
 
@@ -184,15 +187,15 @@
       { facingMode: "environment" },
       { fps: 10, qrbox: 250 },
       onScanSuccess
-    ).catch(err => showResult("❌ Camera start failed: " + err, "error"));
+    ).catch(err => showMessage("❌ Camera start failed: " + err, "error"));
   });
 
   // Stop Scan
   document.getElementById("stopScan").addEventListener("click", () => {
     if(scanner){
       scanner.stop().then(() => {
-        showResult("Scanner stopped", "success");
-      }).catch(err => showResult("Error stopping scanner: " + err, "error"));
+        showMessage("Scanner stopped", "warning");
+      }).catch(err => showMessage("Error stopping scanner: " + err, "error"));
     }
   });
 </script>
