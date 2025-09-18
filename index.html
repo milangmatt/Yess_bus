@@ -6,7 +6,6 @@
 <title>YESS - BUS Attendance</title>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <style>
-  /* Dark theme */
   body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -15,13 +14,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 15px;
+    padding: 20px;
   }
 
   h2 {
-    font-size: 24px;
+    font-size: 26px;
     margin-bottom: 20px;
-    color: #ff9800;
+    color: #ff2600;
     text-align: center;
   }
 
@@ -51,56 +50,59 @@
   }
 
   button {
-    background-color: #ff9800;
+    background-color: #ff1e00;
     color: #121212;
     flex: 1;
     transition: background 0.3s;
   }
 
   button:hover {
-    background-color: #ffa733;
+    background-color: #ff4b33;
+  }
+
+  #scanner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 15px;
+  }
+
+  #resultBox {
+    width: 90vw;
+    max-width: 400px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 12px;
+    display: none; /* hidden by default */
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  #resultBox.success {
+    background-color: #2b7a0b;
+    color: #fff;
+    border: 2px solid #1f5c08;
+  }
+
+  #resultBox.error {
+    background-color: #b00020;
+    color: #fff;
+    border: 2px solid #7a0015;
   }
 
   #reader {
     width: 90vw;
     max-width: 400px;
-    height: 400px; /* fixed size */
+    height: 400px;
     background-color: #1e1e1e;
     border-radius: 12px;
-    margin: 15px 0;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  }
-
-  #result {
-    margin-top: 10px;
-    font-size: 16px;
-    text-align: center;
-    min-height: 24px;
-  }
-
-  /* Toast styling */
-  .toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #333;
-    color: #fff;
-    padding: 14px 24px;
-    border-radius: 8px;
-    font-size: 16px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-    z-index: 1000;
-  }
-
-  .toast.show {
-    opacity: 1;
-    pointer-events: auto;
+    font-size: 18px;
+    color: #aaa;
   }
 </style>
 </head>
@@ -128,22 +130,22 @@
   <button id="stopScan">Stop Scan</button>
 </div>
 
-<div id="reader">Scanner Placeholder</div>
-<p id="result"></p>
-
-<div id="toast" class="toast"></div>
+<div id="scanner-container">
+  <div id="resultBox"></div>
+  <div id="reader">Scanner Here</div>
+</div>
 
 <script>
   const webAppURL = "https://script.google.com/macros/s/AKfycbwGU1r3aQdUQJMAOhEeF3LlZLk4aeQ3FyIx753JVo6IZA62gJys83eXpd0cj2dkWjna/exec";
-  const toast = document.getElementById("toast");
-
-  function showToast(message) {
-    toast.textContent = message;
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 3000);
-  }
+  const resultBox = document.getElementById("resultBox");
 
   let scanner = null;
+
+  function showResult(message, type="success") {
+    resultBox.textContent = message;
+    resultBox.className = type === "success" ? "success" : "error";
+    resultBox.style.display = "block";
+  }
 
   function sendToSheet(data){
     const bus = document.getElementById("busSelect").value;
@@ -160,14 +162,8 @@
       method: "POST",
       body: JSON.stringify(payload)
     }).then(res => res.text())
-    .then(txt => {
-      document.getElementById("result").innerText = txt;
-      showToast("✅ " + txt);
-    })
-    .catch(err => {
-      document.getElementById("result").innerText = "Error: "+err;
-      showToast("❌ Error: "+err);
-    });
+    .then(txt => showResult("✅ " + txt, "success"))
+    .catch(err => showResult("❌ Error: "+err, "error"));
   }
 
   function onScanSuccess(decodedText, decodedResult){
@@ -175,8 +171,7 @@
       const data = JSON.parse(decodedText);
       sendToSheet(data);
     }catch(e){
-      document.getElementById("result").innerText = "Invalid QR Code";
-      showToast("⚠️ Invalid QR Code");
+      showResult("⚠️ Invalid QR Code", "error");
     }
   }
 
@@ -189,15 +184,15 @@
       { facingMode: "environment" },
       { fps: 10, qrbox: 250 },
       onScanSuccess
-    ).catch(err => showToast("❌ Camera start failed: " + err));
+    ).catch(err => showResult("❌ Camera start failed: " + err, "error"));
   });
 
   // Stop Scan
   document.getElementById("stopScan").addEventListener("click", () => {
     if(scanner){
       scanner.stop().then(() => {
-        showToast("Scanner stopped");
-      }).catch(err => showToast("Error stopping scanner: " + err));
+        showResult("Scanner stopped", "success");
+      }).catch(err => showResult("Error stopping scanner: " + err, "error"));
     }
   });
 </script>
