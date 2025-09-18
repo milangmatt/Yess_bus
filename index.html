@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bus Attendance Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+  <h2>Bus Attendance Check-in</h2>
+
+  <label>Bus Number:</label>
+  <select id="busSelect">
+    <option value="1">Bus 1</option>
+    <option value="2">Bus 2</option>
+    <option value="3">Bus 3</option>
+  </select>
+
+  <label>Boarding Number:</label>
+  <select id="boardingSelect">
+    <option value="1">Boarding 1</option>
+    <option value="2">Boarding 2</option>
+    <option value="3">Boarding 3</option>
+  </select>
+
+  <div style="width:300px;" id="reader"></div>
+  <p id="result"></p>
+
+  <script>
+    const webAppURL = "https://script.google.com/macros/s/AKfycbwGU1r3aQdUQJMAOhEeF3LlZLk4aeQ3FyIx753JVo6IZA62gJys83eXpd0cj2dkWjna/exec";
+
+    function sendToSheet(data){
+      const bus = document.getElementById("busSelect").value;
+      const boarding = document.getElementById("boardingSelect").value;
+
+      const payload = {
+        id: data.id,
+        name: data.name,
+        bus: bus,
+        boarding: boarding
+      };
+
+      fetch(webAppURL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }).then(res => res.text())
+      .then(txt => document.getElementById("result").innerText = txt)
+      .catch(err => document.getElementById("result").innerText = "Error: "+err);
+    }
+
+    function onScanSuccess(decodedText, decodedResult){
+      try{
+        const data = JSON.parse(decodedText);
+        sendToSheet(data);
+      }catch(e){
+        document.getElementById("result").innerText = "Invalid QR Code";
+      }
+    }
+
+    var html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader", { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess);
+  </script>
+</body>
+</html>
